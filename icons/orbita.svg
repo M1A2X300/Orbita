@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="space" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#132847"/>
+      <stop offset="1" stop-color="#34245f"/>
+    </linearGradient>
+    <linearGradient id="ship" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#a8f4ff"/>
+      <stop offset="1" stop-color="#8f91ff"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="13" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#space)"/>
+  <circle cx="105" cy="111" r="7" fill="#e1edff"/>
+  <circle cx="402" cy="147" r="6" fill="#e1edff"/>
+  <circle cx="363" cy="365" r="8" fill="#b9c9ff"/>
+  <circle cx="117" cy="381" r="5" fill="#b9c9ff"/>
+  <path d="M75 299c54-10 91-50 128-103 40 77 103 116 234 125-108 27-186 62-226 123-18-71-60-118-136-145Z" fill="#9d8aff" opacity=".23"/>
+  <g filter="url(#glow)" transform="translate(256 240)">
+    <path d="M0-151c49 57 81 137 80 239l-52-30-28 68-28-68-52 30c-1-102 31-182 80-239Z" fill="url(#ship)"/>
+    <ellipse cy="-23" rx="25" ry="42" fill="#f3fdff"/>
+    <path d="M-21 94 0 170l21-76-21 17-21-17Z" fill="#ffb5d1"/>
+  </g>
+</svg>

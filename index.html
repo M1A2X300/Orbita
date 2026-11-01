@@ -1,0 +1,1733 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d1c">
+  <meta name="description" content="Esquiva meteoritos en Órbita, un juego espacial para PC.">
+  <meta name="application-name" content="Órbita">
+  <link rel="icon" href="/icons/orbita.ico" sizes="any">
+  <link rel="icon" href="/icons/orbita.svg" type="image/svg+xml">
+  <title>Órbita — Esquiva meteoritos</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #090d1c;
+      color: #f5f7ff;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    .intro-screen {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 48%, rgba(52, 69, 150, .28), transparent 42%),
+        radial-gradient(ellipse at 50% 100%, rgba(52, 45, 122, .3), transparent 58%),
+        #070a16;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity .65s ease, visibility .65s ease;
+    }
+
+    .intro-screen::before, .intro-screen::after {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #d9e8ff;
+      box-shadow: 0 0 12px rgba(217, 232, 255, .8);
+      content: "";
+      animation: intro-twinkle 2.4s ease-in-out infinite alternate;
+    }
+
+    .intro-screen::before { top: 22%; left: 18%; }
+    .intro-screen::after { right: 20%; bottom: 23%; animation-delay: .8s; }
+
+    .intro-screen.intro-exiting { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .intro-content {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 380px);
+      text-align: center;
+      animation: intro-arrive .8s cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .intro-emblem {
+      position: relative;
+      display: grid;
+      width: 132px;
+      height: 132px;
+      margin: 0 auto 30px;
+      place-items: center;
+      border: 1px solid rgba(117, 228, 255, .25);
+      border-radius: 50%;
+      box-shadow: 0 0 50px rgba(91, 131, 255, .18), inset 0 0 30px rgba(117, 228, 255, .08);
+    }
+
+    .intro-emblem::before {
+      position: absolute;
+      inset: -10px;
+      border: 1px solid rgba(169, 160, 255, .28);
+      border-right-color: transparent;
+      border-radius: 50%;
+      content: "";
+      animation: intro-orbit 8s linear infinite;
+    }
+
+    .intro-emblem::after {
+      position: absolute;
+      top: 2px;
+      right: 16px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #75e4ff;
+      box-shadow: 0 0 15px #75e4ff;
+      content: "";
+    }
+
+    .intro-logo {
+      display: block;
+      width: 86px;
+      height: 86px;
+      border-radius: 22px;
+      filter: drop-shadow(0 0 20px rgba(117, 228, 255, .32));
+      animation: intro-float 3s ease-in-out infinite;
+    }
+
+    .intro-kicker, .intro-studio-label {
+      color: #8d96b8;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+    }
+
+    .intro-title {
+      margin: 8px 0 18px;
+      font-size: clamp(36px, 9vw, 52px);
+      font-weight: 900;
+      letter-spacing: .2em;
+      text-indent: .2em;
+      text-shadow: 0 0 32px rgba(117, 228, 255, .26);
+    }
+
+    .intro-studio-label { letter-spacing: .18em; }
+    .intro-studio-name {
+      display: block;
+      margin-top: 6px;
+      color: #d7ddf4;
+      font-size: 15px;
+      font-weight: 750;
+      letter-spacing: .12em;
+    }
+
+    .intro-loading {
+      display: grid;
+      gap: 10px;
+      margin: 38px auto 0;
+      color: #8d96b8;
+      font-size: 11px;
+      letter-spacing: .08em;
+    }
+
+    .intro-progress {
+      height: 3px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(164, 181, 255, .14);
+    }
+
+    .intro-progress-fill {
+      display: block;
+      width: 14%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #6be4ff, #a9a0ff);
+      box-shadow: 0 0 12px rgba(107, 228, 255, .7);
+    }
+
+    .intro-progress-fill.is-loading { animation: intro-loading 1.5s ease-out forwards; }
+    .intro-progress-fill.is-loaded { width: 100%; animation: none; transition: width .4s ease; }
+
+    @keyframes intro-arrive {
+      from { opacity: 0; transform: translateY(14px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes intro-orbit { to { transform: rotate(360deg); } }
+    @keyframes intro-float { 50% { transform: translateY(-5px); } }
+    @keyframes intro-twinkle { to { opacity: .25; transform: scale(.65); } }
+    @keyframes intro-loading { to { width: 76%; } }
+
+    body {
+      min-height: 100dvh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 100%, rgba(52, 45, 122, .34), transparent 58%),
+        radial-gradient(ellipse at 12% 15%, rgba(38, 98, 147, .16), transparent 38%),
+        #090d1c;
+    }
+
+    .game-shell {
+      width: min(100% - 32px, 980px);
+      padding: 20px;
+      border: 1px solid rgba(164, 181, 255, .13);
+      border-radius: 24px;
+      background: rgba(15, 20, 40, .78);
+      box-shadow: 0 30px 100px rgba(0, 0, 0, .42), inset 0 1px rgba(255,255,255,.04);
+      backdrop-filter: blur(14px);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 4px 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: block;
+      border-radius: 13px;
+      box-shadow: 0 0 25px rgba(90, 211, 255, .12);
+    }
+
+    .brand-mark img { display: block; width: 100%; height: 100%; border-radius: inherit; }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: .16em;
+      font-weight: 850;
+    }
+
+    .subtitle {
+      margin-top: 3px;
+      color: #8d96b8;
+      font-size: 12px;
+    }
+
+    .stats { display: flex; gap: 10px; }
+
+    .stat {
+      min-width: 90px;
+      padding: 8px 13px;
+      border: 1px solid rgba(164, 181, 255, .12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .035);
+      text-align: right;
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 2px;
+      color: #8d96b8;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .stat-value { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .best-value { color: #ffd879; }
+    .level-value { color: #a9a0ff; }
+
+    .online-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 4px 13px;
+      color: #a4acc8;
+      font-size: 12px;
+    }
+
+    .online-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+    .online-button {
+      padding: 8px 12px;
+      border: 1px solid rgba(168, 184, 255, .2);
+      background: rgba(255, 255, 255, .05);
+      color: #d6dcf3;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
+    dialog {
+      width: min(100% - 32px, 430px);
+      padding: 25px;
+      border: 1px solid rgba(164, 181, 255, .2);
+      border-radius: 18px;
+      background: #11172c;
+      color: #f5f7ff;
+      box-shadow: 0 24px 90px rgba(0, 0, 0, .6);
+    }
+
+    dialog::backdrop { background: rgba(3, 5, 15, .76); backdrop-filter: blur(5px); }
+    dialog h2 { margin: 0 0 8px; font-size: 25px; }
+    dialog p { color: #a4acc8; font-size: 13px; line-height: 1.55; }
+    .dialog-close { float: right; padding: 4px 9px; font-size: 18px; }
+    .auth-form { display: grid; gap: 12px; margin-top: 18px; }
+    .auth-form label { display: grid; gap: 6px; color: #c3cae2; font-size: 12px; }
+    .auth-form input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid rgba(164, 181, 255, .2);
+      border-radius: 9px;
+      outline: none;
+      background: #0a1021;
+      color: #f5f7ff;
+      font: inherit;
+    }
+    .auth-form input:focus { border-color: #75e4ff; }
+    .auth-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 3px; }
+    .card-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; }
+    .text-button {
+      padding: 8px 4px;
+      background: transparent;
+      color: #75e4ff;
+      font-size: 12px;
+      box-shadow: none;
+    }
+    .offline-button {
+      padding: 8px 12px;
+      border: 1px solid rgba(168, 184, 255, .2);
+      background: rgba(255, 255, 255, .05);
+      color: #d6dcf3;
+      box-shadow: none;
+    }
+    .dialog-error { min-height: 18px; margin: 0; color: #ff9eae !important; }
+    .ranking-list { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+    .ranking-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 11px 13px;
+      border: 1px solid rgba(164, 181, 255, .12);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .035);
+    }
+    .ranking-score { color: #ffd879; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(156, 175, 255, .16);
+      border-radius: 17px;
+      background: #080c19;
+      box-shadow: inset 0 0 70px rgba(25, 30, 75, .3);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(62vh, 590px);
+      min-height: 360px;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(7, 10, 23, .2), rgba(7, 10, 23, .66));
+      text-align: center;
+      transition: opacity .2s ease, visibility .2s ease;
+    }
+
+    .overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .card { max-width: 430px; }
+
+    .eyebrow {
+      color: #75e4ff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+    }
+
+    .card h2 {
+      margin: 11px 0 9px;
+      font-size: clamp(32px, 6vw, 52px);
+      line-height: 1;
+      letter-spacing: -.055em;
+    }
+
+    .card p {
+      margin: 0 auto 21px;
+      color: #a4acc8;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .studio-credit {
+      margin: -5px 0 20px;
+      color: #818aa9;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .studio-credit strong { color: #c4c9e6; }
+
+    button {
+      padding: 12px 24px;
+      border: 0;
+      border-radius: 11px;
+      background: linear-gradient(100deg, #6be4ff, #9e9aff);
+      color: #0a1021;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 850;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(104, 221, 255, .2);
+      transition: transform .18s cubic-bezier(.2, .8, .2, 1), filter .18s ease, box-shadow .18s ease;
+    }
+
+    button:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.08); box-shadow: 0 10px 32px rgba(104, 221, 255, .28); }
+    button:active { transform: translateY(0) scale(.97); filter: brightness(.96); }
+    button:focus-visible { outline: 2px solid #75e4ff; outline-offset: 3px; }
+
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 4px 1px;
+      color: #818aa9;
+      font-size: 12px;
+    }
+
+    .footer-controls, .color-picker, .ship-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-picker, .ship-picker { gap: 6px; }
+    .color-label, .ship-label { color: #a4acc8; }
+
+    .color-choice, .ship-choice {
+      width: 23px;
+      height: 23px;
+      padding: 0;
+      border: 2px solid rgba(255, 255, 255, .4);
+      border-radius: 7px;
+      background: var(--swatch, rgba(255, 255, 255, .05));
+      box-shadow: none;
+    }
+
+    .color-choice { border-radius: 50%; }
+
+    .color-choice[data-color="#8eeeff"] { --swatch: #8eeeff; }
+    .color-choice[data-color="#ff9eae"] { --swatch: #ff9eae; }
+    .color-choice[data-color="#a9f5a5"] { --swatch: #a9f5a5; }
+    .color-choice[data-color="#c3a5ff"] { --swatch: #c3a5ff; }
+
+    .color-choice[aria-pressed="true"], .ship-choice[aria-pressed="true"] {
+      outline: 2px solid #f5f7ff;
+      outline-offset: 2px;
+    }
+
+    .ship-choice {
+      width: auto;
+      padding: 0 8px;
+      color: #d6dcf3;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .menu-button {
+      padding: 8px 12px;
+      border: 1px solid rgba(168, 184, 255, .2);
+      background: rgba(255, 255, 255, .05);
+      color: #d6dcf3;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
+    .close-button {
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 132, 151, .25);
+      background: rgba(255, 109, 133, .08);
+      color: #ffb1bd;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
+    .key {
+      display: inline-grid;
+      min-width: 23px;
+      height: 22px;
+      margin: 0 2px;
+      padding: 0 5px;
+      place-items: center;
+      border: 1px solid rgba(168, 184, 255, .2);
+      border-radius: 5px;
+      background: rgba(255,255,255,.04);
+      color: #d6dcf3;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="intro-screen" id="intro-screen" role="status" aria-live="polite" aria-label="Cargando Órbita">
+    <div class="intro-content">
+      <div class="intro-emblem">
+        <img class="intro-logo" src="/icons/orbita.svg" alt="" aria-hidden="true">
+      </div>
+      <div class="intro-kicker">Un viaje entre estrellas</div>
+      <div class="intro-title" aria-label="Órbita">ÓRBITA</div>
+      <div class="intro-studio-label">Una producción de</div>
+      <strong class="intro-studio-name">MAXX.C</strong>
+      <div class="intro-loading">
+        <span id="intro-status">Preparando sistemas...</span>
+        <span class="intro-progress" aria-hidden="true"><span class="intro-progress-fill is-loading" id="intro-progress"></span></span>
+      </div>
+    </div>
+  </div>
+
+  <main class="game-shell">
+    <header>
+      <div class="brand">
+        <div class="brand-mark"><img src="/icons/orbita.svg" alt="" aria-hidden="true"></div>
+        <div>
+          <h1>ÓRBITA</h1>
+          <div class="subtitle">Un viaje entre estrellas</div>
+        </div>
+      </div>
+      <div class="stats" aria-live="polite">
+        <div class="stat"><span class="stat-label">Puntos</span><span class="stat-value" id="score">0000</span></div>
+        <div class="stat"><span class="stat-label">Nivel</span><span class="stat-value level-value" id="level">1</span></div>
+        <div class="stat"><span class="stat-label">Récord</span><span class="stat-value best-value" id="best">0000</span></div>
+      </div>
+    </header>
+
+    <div class="online-bar">
+      <span id="account-status" aria-live="polite">Conectando al servidor...</span>
+      <div class="online-actions">
+        <button class="online-button" id="login-open" type="button">Iniciar sesión</button>
+        <button class="online-button" id="profile-open" type="button" hidden>Perfil</button>
+        <button class="online-button" id="export-games" type="button" hidden>Exportar mis partidas</button>
+        <button class="online-button" id="ranking-open" type="button">Ranking online</button>
+      </div>
+    </div>
+
+    <section class="stage" aria-label="Zona de juego">
+      <canvas id="game" aria-label="Juego: mueve la nave para esquivar meteoritos"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <div class="eyebrow" id="eyebrow">Misión espacial</div>
+          <h2 id="title">¿Listo para despegar?</h2>
+          <p id="message">Esquiva los meteoritos y sobrevive todo lo que puedas. Cada segundo cuenta.</p>
+          <div class="studio-credit">Una producción de <strong>Maxx.c</strong></div>
+          <div class="card-actions">
+            <button id="start">Iniciar misión</button>
+            <button class="offline-button" id="offline-start" type="button">Jugar offline (sin guardar)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="desktop-hint"><span class="key">←</span><span class="key">→</span> o <span class="key">A</span><span class="key">D</span> para moverte</div>
+      <div class="footer-controls">
+        <div class="color-picker" role="group" aria-label="Color de la nave">
+          <span class="color-label">Color:</span>
+          <button class="color-choice" type="button" data-color="#8eeeff" data-glow="rgba(89, 222, 255, .75)" data-flame="#a17bff" aria-label="Nave azul" aria-pressed="true" title="Azul"></button>
+          <button class="color-choice" type="button" data-color="#ff9eae" data-glow="rgba(255, 115, 153, .75)" data-flame="#ffd879" aria-label="Nave rosa" aria-pressed="false" title="Rosa"></button>
+          <button class="color-choice" type="button" data-color="#a9f5a5" data-glow="rgba(123, 255, 155, .75)" data-flame="#ffe58a" aria-label="Nave verde" aria-pressed="false" title="Verde"></button>
+          <button class="color-choice" type="button" data-color="#c3a5ff" data-glow="rgba(169, 124, 255, .75)" data-flame="#ff9fd0" aria-label="Nave violeta" aria-pressed="false" title="Violeta"></button>
+        </div>
+        <div class="ship-picker" role="group" aria-label="Modelo de nave">
+          <span class="ship-label">Nave:</span>
+          <button class="ship-choice" type="button" data-ship="arrow" aria-pressed="true">Flecha</button>
+          <button class="ship-choice" type="button" data-ship="wings" aria-pressed="false">Alas</button>
+          <button class="ship-choice" type="button" data-ship="titan" aria-pressed="false">Titán</button>
+        </div>
+        <button class="menu-button" id="music-toggle" type="button" aria-pressed="false">♫ Música: apagada</button>
+        <button class="menu-button" id="menu" type="button">Volver al menú</button>
+        <button class="close-button" id="close" type="button">Cerrar juego</button>
+      </div>
+    </footer>
+  </main>
+
+  <dialog id="account-dialog" aria-labelledby="account-title">
+    <button class="menu-button dialog-close" id="account-close" type="button" aria-label="Cerrar">×</button>
+    <h2 id="account-title">Iniciar sesión</h2>
+    <p id="account-help">Escribe tu correo y te enviaremos un código de un solo uso.</p>
+    <form class="auth-form" id="auth-form">
+      <label id="username-field" hidden>Nombre que aparecerá en el ranking
+        <input id="username" name="username" autocomplete="username" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}">
+      </label>
+      <label id="email-field">Correo electrónico
+        <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required>
+      </label>
+      <label id="password-field" hidden>Contraseña actual de tu cuenta anterior
+        <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128">
+      </label>
+      <label id="code-field" hidden>Código de 8 dígitos
+        <input id="email-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" minlength="8" maxlength="8">
+      </label>
+      <p class="dialog-error" id="auth-error" aria-live="polite"></p>
+      <div class="auth-actions">
+        <button id="auth-submit" type="submit">Enviar código</button>
+        <button class="text-button" id="auth-mode" type="button">Crear cuenta</button>
+        <button class="text-button" id="auth-link" type="button">Vincular cuenta anterior</button>
+        <button class="text-button" id="auth-back" type="button" hidden>Cambiar correo o datos</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="profile-dialog" aria-labelledby="profile-title">
+    <button class="menu-button dialog-close" id="profile-close" type="button" aria-label="Cerrar">×</button>
+    <h2 id="profile-title">Mi perfil</h2>
+    <p>Sesión iniciada como <strong id="profile-username"></strong>.</p>
+    <div class="auth-actions">
+      <button id="profile-logout" type="button">Cerrar sesión</button>
+      <button class="offline-button" id="profile-switch" type="button">Cambiar cuenta</button>
+    </div>
+    <p class="dialog-error" id="profile-error" aria-live="polite"></p>
+  </dialog>
+
+  <dialog id="ranking-dialog" aria-labelledby="ranking-title">
+    <button class="menu-button dialog-close" id="ranking-close" type="button" aria-label="Cerrar">×</button>
+    <h2 id="ranking-title">Ranking online</h2>
+    <p>Las mejores puntuaciones de cada piloto.</p>
+    <ol class="ranking-list" id="ranking-list"></ol>
+    <p class="dialog-error" id="ranking-error" aria-live="polite"></p>
+  </dialog>
+
+  <script>
+    (() => {
+      const canvas = document.querySelector("#game");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.querySelector("#score");
+      const levelEl = document.querySelector("#level");
+      const bestEl = document.querySelector("#best");
+      const introScreen = document.querySelector("#intro-screen");
+      const introStatus = document.querySelector("#intro-status");
+      const introProgress = document.querySelector("#intro-progress");
+      const overlay = document.querySelector("#overlay");
+      const titleEl = document.querySelector("#title");
+      const eyebrowEl = document.querySelector("#eyebrow");
+      const messageEl = document.querySelector("#message");
+      const startButton = document.querySelector("#start");
+      const offlineStartButton = document.querySelector("#offline-start");
+      const menuButton = document.querySelector("#menu");
+      const closeButton = document.querySelector("#close");
+      const colorButtons = [...document.querySelectorAll(".color-choice")];
+      const shipButtons = [...document.querySelectorAll(".ship-choice")];
+      const musicToggle = document.querySelector("#music-toggle");
+      const accountStatus = document.querySelector("#account-status");
+      const loginOpenButton = document.querySelector("#login-open");
+      const profileOpenButton = document.querySelector("#profile-open");
+      const accountDialog = document.querySelector("#account-dialog");
+      const accountCloseButton = document.querySelector("#account-close");
+      const accountTitle = document.querySelector("#account-title");
+      const accountHelp = document.querySelector("#account-help");
+      const usernameField = document.querySelector("#username-field");
+      const emailInput = document.querySelector("#email");
+      const passwordField = document.querySelector("#password-field");
+      const codeField = document.querySelector("#code-field");
+      const emailCodeInput = document.querySelector("#email-code");
+      const authForm = document.querySelector("#auth-form");
+      const usernameInput = document.querySelector("#username");
+      const passwordInput = document.querySelector("#password");
+      const authSubmitButton = document.querySelector("#auth-submit");
+      const authModeButton = document.querySelector("#auth-mode");
+      const authLinkButton = document.querySelector("#auth-link");
+      const authBackButton = document.querySelector("#auth-back");
+      const authError = document.querySelector("#auth-error");
+      const profileDialog = document.querySelector("#profile-dialog");
+      const profileCloseButton = document.querySelector("#profile-close");
+      const profileUsername = document.querySelector("#profile-username");
+      const profileLogoutButton = document.querySelector("#profile-logout");
+      const profileSwitchButton = document.querySelector("#profile-switch");
+      const profileError = document.querySelector("#profile-error");
+      const rankingOpenButton = document.querySelector("#ranking-open");
+      const rankingDialog = document.querySelector("#ranking-dialog");
+      const rankingCloseButton = document.querySelector("#ranking-close");
+      const rankingList = document.querySelector("#ranking-list");
+      const rankingError = document.querySelector("#ranking-error");
+      const exportGamesButton = document.querySelector("#export-games");
+      const emailField = document.querySelector("#email-field");
+      const keys = new Set();
+      const stars = [];
+      const rocks = [];
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let lastTime = 0;
+      let elapsed = 0;
+      let spawnTimer = 0;
+      let score = 0;
+      let level = 1;
+      let running = false;
+      let offlineMode = false;
+      let gameOver = false;
+      let serverOnline = false;
+      let connectionChecked = false;
+      let introReady = false;
+      let introMinimumElapsed = false;
+      let introDismissed = false;
+      let runRecorded = true;
+      let activeRunId = "";
+      let gameStartRequestId = 0;
+      let animationId = 0;
+      let mouseActive = false;
+      let best = loadBest();
+      let currentUser = null;
+      let authPurpose = "login";
+      let challengeId = "";
+      let codeRequested = false;
+      let pendingSave = Promise.resolve();
+      let collisionHandled = false;
+      let audioContext = null;
+      let musicOutput = null;
+      let audioReady = false;
+      let musicEnabled = loadMusicPreference();
+      let musicTimer = 0;
+      let musicStep = 0;
+
+      const ship = { x: 0, y: 0, targetX: 0, radius: 13, tilt: 0 };
+      const shipStyle = {
+        color: "#8eeeff",
+        glow: "rgba(89, 222, 255, .75)",
+        flame: "#a17bff",
+        shape: loadShipShape()
+      };
+
+      function loadMusicPreference() {
+        try {
+          return localStorage.getItem("orbita-music") === "on";
+        } catch {
+          return false;
+        }
+      }
+
+      function saveMusicPreference() {
+        try {
+          localStorage.setItem("orbita-music", musicEnabled ? "on" : "off");
+        } catch (error) {
+          console.warn("No se pudo guardar la preferencia de música:", error);
+        }
+      }
+
+      function loadShipShape() {
+        try {
+          const shape = localStorage.getItem("orbita-ship");
+          return ["arrow", "wings", "titan"].includes(shape) ? shape : "arrow";
+        } catch {
+          return "arrow";
+        }
+      }
+
+      function saveShipShape(shape) {
+        try {
+          localStorage.setItem("orbita-ship", shape);
+        } catch (error) {
+          console.warn("No se pudo guardar el modelo de nave:", error);
+        }
+      }
+
+      function updateMusicButton() {
+        musicToggle.textContent = `♫ Música: ${musicEnabled ? "encendida" : "apagada"}`;
+        musicToggle.setAttribute("aria-pressed", String(musicEnabled));
+      }
+
+      function setMusicOutput(enabled) {
+        if (!audioContext) return;
+        if (!musicOutput) {
+          musicOutput = audioContext.createGain();
+          musicOutput.gain.value = 0;
+          musicOutput.connect(audioContext.destination);
+        }
+        musicOutput.gain.cancelScheduledValues(audioContext.currentTime);
+        musicOutput.gain.setTargetAtTime(enabled ? .65 : 0, audioContext.currentTime, .12);
+      }
+
+      function loadBest() {
+        try {
+          return Number(localStorage.getItem("orbita-best")) || 0;
+        } catch {
+          return 0;
+        }
+      }
+
+      function saveBest(value) {
+        try {
+          localStorage.setItem("orbita-best", String(value));
+        } catch {
+          // El récord sigue disponible durante esta partida si el almacenamiento está bloqueado.
+        }
+      }
+
+      async function apiRequest(path, options = {}) {
+        let response;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 3000);
+        try {
+          response = await fetch(path, {
+            method: options.method || "GET",
+            signal: controller.signal,
+            headers: {
+              ...(options.body ? { "Content-Type": "application/json" } : {})
+            },
+            ...(options.body ? { body: JSON.stringify(options.body) } : {})
+          });
+        } catch {
+          window.clearTimeout(timeout);
+          const error = new Error("No se pudo conectar con el servidor. Comprueba que esté en línea.");
+          error.network = true;
+          throw error;
+        }
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (cause) {
+          window.clearTimeout(timeout);
+          if (!controller.signal.aborted && !(cause instanceof TypeError)) {
+            throw new Error("El servidor respondió con un formato no válido.");
+          }
+          if (controller.signal.aborted) {
+            const error = new Error("No se pudo conectar con el servidor. Comprueba que esté en línea.");
+            error.network = true;
+            throw error;
+          }
+          const error = new Error("No se pudo conectar con el servidor. Comprueba que esté en línea.");
+          error.network = true;
+          throw error;
+        }
+        window.clearTimeout(timeout);
+        if (!response.ok) {
+          const error = new Error(result.error || "La solicitud no se pudo completar.");
+          error.status = response.status;
+          if (response.status === 401) clearAuth();
+          throw error;
+        }
+        return result;
+      }
+
+      function clearAuth() {
+        currentUser = null;
+        clearLegacySessions();
+        updateAccount();
+      }
+
+      function updateAccount() {
+        rankingOpenButton.hidden = !serverOnline;
+        exportGamesButton.hidden = !currentUser || !serverOnline;
+        if (currentUser && serverOnline) {
+          accountStatus.textContent = `Sesión iniciada como ${currentUser.username}`;
+          loginOpenButton.hidden = true;
+          profileOpenButton.hidden = false;
+          profileUsername.textContent = currentUser.username;
+          if (!running) startButton.textContent = gameOver ? "Jugar de nuevo" : "Iniciar misión";
+        } else {
+          accountStatus.textContent = serverOnline
+            ? "Inicia sesión para jugar y guardar tus partidas"
+            : connectionChecked
+              ? "Sin conexión: modo offline, partidas sin guardar"
+              : "Conectando al servidor...";
+          loginOpenButton.hidden = !serverOnline;
+          profileOpenButton.hidden = true;
+          if (!running) {
+            startButton.textContent = !connectionChecked
+              ? "Preparando..."
+              : serverOnline ? "Iniciar sesión para jugar" : "Jugar offline";
+          }
+        }
+      }
+
+      function clearLegacySessions() {
+        try {
+          localStorage.removeItem("orbita-session");
+        } catch {
+        }
+        try {
+          sessionStorage.removeItem("orbita-session");
+        } catch {
+        }
+      }
+
+      async function initializeConnection() {
+        clearLegacySessions();
+        if (navigator.onLine === false) {
+          serverOnline = false;
+          currentUser = null;
+          connectionChecked = true;
+          updateAccount();
+          return;
+        }
+        try {
+          const result = await apiRequest("/api/me");
+          currentUser = result.user;
+          serverOnline = true;
+          connectionChecked = true;
+          updateAccount();
+        } catch (error) {
+          if (error.network) {
+            serverOnline = false;
+            currentUser = null;
+            connectionChecked = true;
+            updateAccount();
+            return;
+          }
+          serverOnline = true;
+          currentUser = null;
+          connectionChecked = true;
+          updateAccount();
+          if (error.status !== 401) accountStatus.textContent = error.message;
+        }
+      }
+
+      function dismissIntroWhenReady() {
+        if (!introReady || !introMinimumElapsed || introDismissed) return;
+        introDismissed = true;
+        introScreen.classList.add("intro-exiting");
+        window.setTimeout(() => { introScreen.hidden = true; }, 650);
+      }
+
+      function openAccount() {
+        authError.textContent = "";
+        accountDialog.showModal();
+        (authPurpose === "register" || authPurpose === "link" ? usernameInput : emailInput).focus();
+      }
+
+      function setAuthMode(register) {
+        authPurpose = register ? "register" : "login";
+        challengeId = "";
+        codeRequested = false;
+        usernameField.hidden = !register;
+        usernameInput.required = register;
+        passwordField.hidden = true;
+        passwordInput.required = false;
+        emailField.hidden = false;
+        emailInput.required = true;
+        codeField.hidden = true;
+        emailCodeInput.required = false;
+        authBackButton.hidden = true;
+        accountTitle.textContent = register ? "Crear cuenta" : "Iniciar sesión";
+        accountHelp.textContent = register
+          ? "Elige tu nombre público para el ranking. Te enviaremos un código para verificar el correo."
+          : "Escribe tu correo y te enviaremos un código de un solo uso.";
+        authSubmitButton.textContent = "Enviar código";
+        authModeButton.textContent = register ? "Ya tengo cuenta" : "Crear cuenta";
+        authModeButton.hidden = false;
+        authLinkButton.hidden = authPurpose !== "login";
+        passwordInput.value = "";
+        emailCodeInput.value = "";
+        authError.textContent = "";
+      }
+
+      function setLegacyLinkMode() {
+        authPurpose = "link";
+        challengeId = "";
+        codeRequested = false;
+        usernameField.hidden = false;
+        usernameInput.required = true;
+        emailField.hidden = false;
+        emailInput.required = true;
+        passwordField.hidden = false;
+        passwordInput.required = true;
+        codeField.hidden = true;
+        emailCodeInput.required = false;
+        authBackButton.hidden = true;
+        accountTitle.textContent = "Vincular cuenta anterior";
+        accountHelp.textContent = "Confirma el nombre y la contraseña de tu cuenta existente y verifica tu correo. Se conservarán tus partidas y nombre del ranking.";
+        authSubmitButton.textContent = "Enviar código";
+        authModeButton.hidden = true;
+        authLinkButton.hidden = true;
+        passwordInput.value = "";
+        emailCodeInput.value = "";
+        authError.textContent = "";
+      }
+
+      function showCodeStep() {
+        usernameField.hidden = true;
+        emailField.hidden = true;
+        passwordField.hidden = true;
+        codeField.hidden = false;
+        emailCodeInput.required = true;
+        authBackButton.hidden = false;
+        authModeButton.hidden = true;
+        authLinkButton.hidden = true;
+        accountHelp.textContent = "Si los datos corresponden a una cuenta válida, recibirás un código de un solo uso. Vence en 10 minutos.";
+        authSubmitButton.textContent = "Verificar código";
+        emailCodeInput.focus();
+      }
+
+      async function submitAuth(event) {
+        event.preventDefault();
+        authError.textContent = "";
+        authSubmitButton.disabled = true;
+        try {
+          if (!codeRequested) {
+            const body = { purpose: authPurpose, email: emailInput.value.trim() };
+            if (authPurpose === "register" || authPurpose === "link") {
+              body.username = usernameInput.value.trim();
+            }
+            if (authPurpose === "link") body.password = passwordInput.value;
+            const result = await apiRequest("/api/auth/code", { method: "POST", body });
+            challengeId = result.challengeId;
+            codeRequested = true;
+            passwordInput.value = "";
+            showCodeStep();
+            return;
+          }
+          const result = await apiRequest("/api/auth/verify", {
+            method: "POST",
+            body: { challengeId, code: emailCodeInput.value }
+          });
+          currentUser = result.user;
+          challengeId = "";
+          codeRequested = false;
+          emailCodeInput.value = "";
+          updateAccount();
+          accountDialog.close();
+          if (!running && gameOver) void startGame();
+        } catch (error) {
+          authError.textContent = error.message;
+        } finally {
+          authSubmitButton.disabled = false;
+        }
+      }
+
+      async function signOut() {
+        await endSession(false);
+      }
+
+      async function endSession(switchAccount) {
+        profileLogoutButton.disabled = true;
+        profileSwitchButton.disabled = true;
+        profileError.textContent = "";
+        try {
+          await apiRequest("/api/logout", { method: "POST", body: {} });
+          clearAuth();
+          profileDialog.close();
+          if (switchAccount) {
+            setAuthMode(false);
+            openAccount();
+          } else {
+            accountStatus.textContent = "Sesión cerrada.";
+          }
+        } catch (error) {
+          profileError.textContent = error.message;
+        } finally {
+          profileLogoutButton.disabled = false;
+          profileSwitchButton.disabled = false;
+        }
+      }
+
+      async function showRanking() {
+        rankingList.replaceChildren();
+        rankingError.textContent = "Cargando ranking...";
+        rankingDialog.showModal();
+        try {
+          const result = await apiRequest("/api/leaderboard");
+          rankingError.textContent = result.ranking.length ? "" : "Todavía no hay partidas registradas.";
+          result.ranking.forEach(entry => {
+            const item = document.createElement("li");
+            const player = document.createElement("span");
+            const points = document.createElement("span");
+            player.textContent = `${entry.position}. ${entry.username}`;
+            points.className = "ranking-score";
+            points.textContent = `${entry.score} pts`;
+            item.append(player, points);
+            rankingList.append(item);
+          });
+        } catch (error) {
+          rankingError.textContent = error.message;
+        }
+      }
+
+      async function saveRun(finalScore, durationSeconds) {
+        if (runRecorded || offlineMode || !currentUser) return;
+        runRecorded = true;
+        const runId = activeRunId;
+        activeRunId = "";
+        if (!runId) {
+          accountStatus.textContent = "No se pudo verificar el inicio de la partida; no se guardó.";
+          return;
+        }
+        accountStatus.textContent = "Guardando tu partida...";
+        const username = currentUser.username;
+        pendingSave = apiRequest("/api/games", {
+            method: "POST",
+            body: { runId, score: finalScore, durationSeconds }
+          }).then(
+            () => { accountStatus.textContent = `Partida guardada para ${username}`; },
+            error => { accountStatus.textContent = `No se guardó la partida: ${error.message}`; }
+          );
+        await pendingSave;
+      }
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = rect.width;
+        height = rect.height;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ship.y = height - 58;
+        ship.x = Math.min(Math.max(ship.x || width / 2, 28), width - 28);
+        ship.targetX = ship.x;
+        if (!stars.length) {
+          for (let i = 0; i < 95; i++) {
+            stars.push({ x: Math.random() * width, y: Math.random() * height, size: Math.random() * 1.7 + .25, speed: Math.random() * 34 + 12, alpha: Math.random() * .65 + .2 });
+          }
+        } else {
+          stars.forEach(star => { star.x = Math.random() * width; star.y = Math.random() * height; });
+        }
+        draw();
+      }
+
+      function drawBackground(dt = 0) {
+        ctx.clearRect(0, 0, width, height);
+        const glow = ctx.createRadialGradient(width * .5, height * .78, 0, width * .5, height * .78, height * .75);
+        glow.addColorStop(0, "rgba(65, 53, 142, .18)");
+        glow.addColorStop(1, "rgba(7, 11, 25, 0)");
+        ctx.fillStyle = "#080c19";
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+        stars.forEach(star => {
+          star.y += star.speed * dt;
+          if (star.y > height) {
+            star.y = 0;
+            star.x = Math.random() * width;
+          }
+          ctx.globalAlpha = star.alpha;
+          ctx.fillStyle = "#d9e8ff";
+          ctx.fillRect(star.x, star.y, star.size, star.size);
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      function drawShip() {
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.tilt);
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = shipStyle.glow;
+        ctx.fillStyle = shipStyle.color;
+        ctx.beginPath();
+        if (shipStyle.shape === "wings") {
+          ctx.moveTo(0, -22);
+          ctx.lineTo(7, -4);
+          ctx.lineTo(20, 11);
+          ctx.lineTo(6, 8);
+          ctx.lineTo(0, 15);
+          ctx.lineTo(-6, 8);
+          ctx.lineTo(-20, 11);
+          ctx.lineTo(-7, -4);
+        } else if (shipStyle.shape === "titan") {
+          ctx.moveTo(0, -19);
+          ctx.lineTo(10, -8);
+          ctx.lineTo(16, 12);
+          ctx.lineTo(5, 9);
+          ctx.lineTo(0, 16);
+          ctx.lineTo(-5, 9);
+          ctx.lineTo(-16, 12);
+          ctx.lineTo(-10, -8);
+        } else {
+          ctx.moveTo(0, -22);
+          ctx.lineTo(14, 14);
+          ctx.lineTo(0, 8);
+          ctx.lineTo(-14, 14);
+        }
+        ctx.closePath();
+        ctx.fill();
+        if (shipStyle.shape === "titan") {
+          ctx.fillRect(-18, 3, 5, 8);
+          ctx.fillRect(13, 3, 5, 8);
+        }
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#f6fdff";
+        ctx.beginPath();
+        ctx.ellipse(0, -3, shipStyle.shape === "titan" ? 5 : 4, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = shipStyle.flame;
+        ctx.beginPath();
+        ctx.moveTo(-5, 14);
+        ctx.lineTo(0, 14 + Math.random() * 9 + 5);
+        ctx.lineTo(5, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawRock(rock) {
+        ctx.save();
+        ctx.translate(rock.x, rock.y);
+        ctx.rotate(rock.rotation);
+        ctx.shadowBlur = 13;
+        ctx.shadowColor = "rgba(255, 105, 117, .3)";
+        ctx.fillStyle = rock.color;
+        ctx.beginPath();
+        for (let i = 0; i < rock.points.length; i++) {
+          const angle = (i / rock.points.length) * Math.PI * 2;
+          const radius = rock.radius * rock.points[i];
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(35, 18, 30, .28)";
+        ctx.beginPath();
+        ctx.arc(-rock.radius * .2, -rock.radius * .1, rock.radius * .22, 0, Math.PI * 2);
+        ctx.arc(rock.radius * .34, rock.radius * .23, rock.radius * .13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function draw(dt = 0) {
+        drawBackground(dt);
+        rocks.forEach(drawRock);
+        drawShip();
+      }
+
+      function addRock() {
+        const radius = 12 + Math.random() * 16;
+        const sides = 7 + Math.floor(Math.random() * 4);
+        const points = Array.from({ length: sides }, () => .72 + Math.random() * .48);
+        rocks.push({
+          x: radius + Math.random() * (width - radius * 2),
+          y: -radius - 5,
+          radius,
+          points,
+          speed: 115 + Math.random() * 90 + (level - 1) * 30 + score * .15,
+          rotation: Math.random() * Math.PI * 2,
+          spin: (Math.random() - .5) * 2.2,
+          color: Math.random() > .5 ? "#a65464" : "#79566e"
+        });
+      }
+
+      function update(dt) {
+        elapsed += dt;
+        score = Math.floor(elapsed * 10);
+        level = Math.floor(score / 100) + 1;
+        scoreEl.textContent = String(score).padStart(4, "0");
+        levelEl.textContent = String(level);
+
+        const direction = (keys.has("ArrowRight") || keys.has("d") || keys.has("D") ? 1 : 0)
+          - (keys.has("ArrowLeft") || keys.has("a") || keys.has("A") ? 1 : 0);
+        if (direction) ship.targetX += direction * (300 + score * .5) * dt;
+        ship.targetX = Math.max(22, Math.min(width - 22, ship.targetX));
+        ship.x += (ship.targetX - ship.x) * Math.min(1, dt * 13);
+        ship.tilt += ((direction * .16) - ship.tilt) * Math.min(1, dt * 8);
+
+        spawnTimer += dt;
+        const spawnEvery = Math.max(.22, .72 - (level - 1) * .055);
+        const rocksPerWave = level;
+        while (spawnTimer >= spawnEvery) {
+          spawnTimer -= spawnEvery;
+          for (let i = 0; i < rocksPerWave; i++) addRock();
+        }
+
+        for (let i = rocks.length - 1; i >= 0; i--) {
+          const rock = rocks[i];
+          rock.y += rock.speed * dt;
+          rock.rotation += rock.spin * dt;
+          if (rock.y - rock.radius > height) {
+            rocks.splice(i, 1);
+            continue;
+          }
+          const dx = rock.x - ship.x;
+          const dy = rock.y - ship.y;
+          if (dx * dx + dy * dy < (rock.radius * .78 + ship.radius * .65) ** 2) {
+            if (!collisionHandled) {
+              collisionHandled = true;
+              playExplosion();
+              endGame();
+            }
+            return;
+          }
+        }
+      }
+
+      async function primeAudio() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return false;
+        try {
+          if (!audioContext) audioContext = new AudioContext();
+          if (audioContext.state === "suspended") await audioContext.resume();
+          audioReady = audioContext.state === "running";
+          if (audioReady && musicEnabled) {
+            setMusicOutput(true);
+            if (!musicTimer) scheduleMusicNote();
+          }
+          return audioReady;
+        } catch (error) {
+          console.warn("No se pudo preparar el audio del juego:", error);
+          return false;
+        }
+      }
+
+      async function playButtonSound() {
+        if (!await primeAudio()) return;
+        try {
+          const now = audioContext.currentTime;
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(740, now);
+          oscillator.frequency.exponentialRampToValueAtTime(520, now + .075);
+          gain.gain.setValueAtTime(.0001, now);
+          gain.gain.exponentialRampToValueAtTime(.035, now + .008);
+          gain.gain.exponentialRampToValueAtTime(.0001, now + .09);
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.onended = () => {
+            oscillator.disconnect();
+            gain.disconnect();
+          };
+          oscillator.start(now);
+          oscillator.stop(now + .1);
+        } catch (error) {
+          console.warn("No se pudo reproducir el sonido del botón:", error);
+        }
+      }
+
+      function playMusicTone(frequency, type, volume, now, duration) {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, now);
+        gain.gain.setValueAtTime(.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + .09);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+        oscillator.connect(gain);
+        gain.connect(musicOutput);
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          gain.disconnect();
+        };
+        oscillator.start(now);
+        oscillator.stop(now + duration + .02);
+      }
+
+      function scheduleMusicNote() {
+        if (!musicEnabled || !audioReady || !audioContext || audioContext.state !== "running") return;
+        const scale = [220, 261.63, 329.63, 392, 440, 523.25, 659.25];
+        const melody = [0, 2, 4, 3, 5, 2, 4, 6, 4, 3, 1, 2];
+        const now = audioContext.currentTime;
+        playMusicTone(scale[melody[musicStep % melody.length]], "triangle", .025, now, .72);
+        if (musicStep % 4 === 0) {
+          playMusicTone(scale[musicStep % 8 === 0 ? 0 : 2] / 2, "sine", .035, now, 1.35);
+        }
+        musicStep++;
+        musicTimer = window.setTimeout(() => {
+          musicTimer = 0;
+          scheduleMusicNote();
+        }, 560);
+      }
+
+      async function toggleMusic() {
+        musicEnabled = !musicEnabled;
+        saveMusicPreference();
+        updateMusicButton();
+        if (musicEnabled) {
+          if (!await primeAudio()) {
+            musicEnabled = false;
+            saveMusicPreference();
+            updateMusicButton();
+            accountStatus.textContent = "Este navegador no pudo activar el audio.";
+          }
+        } else {
+          window.clearTimeout(musicTimer);
+          musicTimer = 0;
+          setMusicOutput(false);
+        }
+      }
+
+      function playExplosion() {
+        if (!audioContext || !audioReady || audioContext.state !== "running") return;
+        try {
+          const now = audioContext.currentTime;
+          const master = audioContext.createGain();
+          const lowPass = audioContext.createBiquadFilter();
+          const duration = .62;
+          master.gain.setValueAtTime(.42, now);
+          master.gain.exponentialRampToValueAtTime(.001, now + duration);
+          lowPass.type = "lowpass";
+          lowPass.frequency.setValueAtTime(1100, now);
+          lowPass.frequency.exponentialRampToValueAtTime(95, now + duration);
+          lowPass.Q.value = .8;
+          lowPass.connect(master);
+          master.connect(audioContext.destination);
+
+          const noiseBuffer = audioContext.createBuffer(1, Math.ceil(audioContext.sampleRate * duration), audioContext.sampleRate);
+          const noiseData = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < noiseData.length; i++) {
+            noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseData.length);
+          }
+          const noise = audioContext.createBufferSource();
+          noise.buffer = noiseBuffer;
+          noise.connect(lowPass);
+          noise.start(now);
+          noise.stop(now + duration);
+
+          const bass = audioContext.createOscillator();
+          const bassGain = audioContext.createGain();
+          bass.type = "sine";
+          bass.frequency.setValueAtTime(125, now);
+          bass.frequency.exponentialRampToValueAtTime(38, now + duration);
+          bassGain.gain.setValueAtTime(.85, now);
+          bassGain.gain.exponentialRampToValueAtTime(.001, now + duration);
+          bass.connect(bassGain);
+          bassGain.connect(master);
+          bass.start(now);
+          bass.stop(now + duration);
+        } catch (error) {
+          audioReady = false;
+          console.warn("No se pudo reproducir la explosión:", error);
+        }
+      }
+
+      function frame(now) {
+        if (!running) return;
+        const dt = Math.min((now - lastTime) / 1000, .04);
+        lastTime = now;
+        update(dt);
+        draw(dt);
+        if (running) animationId = requestAnimationFrame(frame);
+      }
+
+      async function startGame(playOffline = false) {
+        if (running) return;
+        if (!playOffline && !currentUser) {
+          openAccount();
+          return;
+        }
+        const requestId = ++gameStartRequestId;
+        let runId = "";
+        if (playOffline) {
+          startButton.disabled = false;
+        } else {
+          startButton.disabled = true;
+          accountStatus.textContent = "Preparando una partida verificada...";
+          try {
+            const result = await apiRequest("/api/games/start", {
+              method: "POST",
+              body: {}
+            });
+            if (requestId !== gameStartRequestId) return;
+            runId = result.runId;
+          } catch (error) {
+            if (requestId === gameStartRequestId) {
+              accountStatus.textContent = `No se pudo iniciar una partida verificable: ${error.message}`;
+            }
+            return;
+          } finally {
+            if (requestId === gameStartRequestId) startButton.disabled = false;
+          }
+        }
+        if (requestId !== gameStartRequestId) return;
+        activeRunId = runId;
+        offlineMode = playOffline;
+        cancelAnimationFrame(animationId);
+        rocks.length = 0;
+        elapsed = 0;
+        score = 0;
+        level = 1;
+        gameOver = false;
+        runRecorded = false;
+        collisionHandled = false;
+        spawnTimer = .35;
+        ship.x = width / 2;
+        ship.targetX = ship.x;
+        scoreEl.textContent = "0000";
+        levelEl.textContent = "1";
+        running = true;
+        overlay.classList.add("hidden");
+        lastTime = performance.now();
+        animationId = requestAnimationFrame(frame);
+      }
+
+      function endGame() {
+        running = false;
+        cancelAnimationFrame(animationId);
+        gameOver = true;
+        if (offlineMode) runRecorded = true;
+        else void saveRun(score, Math.floor(elapsed));
+        const newRecord = !offlineMode && score > best;
+        if (newRecord) {
+          best = score;
+          bestEl.textContent = String(best).padStart(4, "0");
+          saveBest(best);
+        }
+        eyebrowEl.textContent = offlineMode
+          ? "Partida offline · sin guardar"
+          : newRecord ? "¡Nuevo récord!" : "Misión finalizada";
+        titleEl.textContent = `${score} puntos`;
+        messageEl.textContent = offlineMode
+          ? "Esta partida no se guardó ni se enviará al ranking. Puedes intentarlo otra vez cuando quieras."
+          : newRecord
+          ? "¡Increíble pilotaje! Has establecido un nuevo récord. ¿Te atreves a superarlo?"
+          : "Los meteoritos ganaron esta vez. Respira, vuelve a la órbita e inténtalo de nuevo.";
+        startButton.textContent = "Jugar de nuevo";
+        overlay.classList.remove("hidden");
+      }
+
+      function returnToMenu() {
+        gameStartRequestId++;
+        startButton.disabled = false;
+        const endedRun = running;
+        running = false;
+        cancelAnimationFrame(animationId);
+        if (endedRun) void saveRun(score, Math.floor(elapsed));
+        rocks.length = 0;
+        offlineMode = false;
+        gameOver = false;
+        startButton.hidden = false;
+        eyebrowEl.textContent = "Misión espacial";
+        titleEl.textContent = "¿Listo para despegar?";
+        messageEl.textContent = "Esquiva los meteoritos y sobrevive todo lo que puedas. Cada segundo cuenta.";
+        updateAccount();
+        overlay.classList.remove("hidden");
+        draw();
+      }
+
+      async function closeGame() {
+        gameStartRequestId++;
+        startButton.disabled = false;
+        const endedRun = running;
+        running = false;
+        cancelAnimationFrame(animationId);
+        rocks.length = 0;
+        draw();
+        if (endedRun) await saveRun(score, Math.floor(elapsed));
+        else await pendingSave;
+        if (new URLSearchParams(window.location.search).get("managed") === "1") {
+          try {
+            await apiRequest("/api/shutdown", { method: "POST", body: {} });
+          } catch (error) {
+            accountStatus.textContent = `No se pudo apagar el servidor: ${error.message}`;
+          }
+        }
+        window.close();
+        window.setTimeout(() => {
+          if (!window.closed) window.location.replace("about:blank");
+        }, 100);
+      }
+
+      function requestStart() {
+        if (accountDialog.open || profileDialog.open || rankingDialog.open) return;
+        if (!serverOnline) {
+          void startGame(true);
+          return;
+        }
+        if (!currentUser) {
+          openAccount();
+          return;
+        }
+        void startGame();
+      }
+
+      function requestOfflineStart() {
+        if (accountDialog.open || profileDialog.open || rankingDialog.open) return;
+        void startGame(true);
+      }
+
+      function moveToMouse(event) {
+        const rect = canvas.getBoundingClientRect();
+        ship.targetX = Math.max(22, Math.min(width - 22, event.clientX - rect.left));
+      }
+
+      async function removeLegacyAppInstall() {
+        if (!("serviceWorker" in navigator)) return;
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations
+            .filter(registration =>
+              [registration.active, registration.waiting, registration.installing]
+                .some(worker => worker && new URL(worker.scriptURL).pathname === "/service-worker.js")
+            )
+            .map(registration => registration.unregister()));
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+              cacheNames
+                .filter(name => name === "orbita-shell-v1")
+                .map(name => caches.delete(name))
+            );
+          }
+        } catch (error) {
+          console.error("No se pudo desactivar la instalación offline anterior:", error);
+        }
+      }
+
+      startButton.addEventListener("click", requestStart);
+      offlineStartButton.addEventListener("click", requestOfflineStart);
+      menuButton.addEventListener("click", returnToMenu);
+      closeButton.addEventListener("click", closeGame);
+      document.addEventListener("click", event => {
+        const button = event.target instanceof Element ? event.target.closest("button") : null;
+        if (button && !button.disabled) void playButtonSound();
+      }, true);
+      loginOpenButton.addEventListener("click", () => {
+        setAuthMode(false);
+        openAccount();
+      });
+      profileOpenButton.addEventListener("click", () => {
+        if (!currentUser) return;
+        profileError.textContent = "";
+        profileUsername.textContent = currentUser.username;
+        profileDialog.showModal();
+      });
+      profileCloseButton.addEventListener("click", () => profileDialog.close());
+      profileLogoutButton.addEventListener("click", signOut);
+      profileSwitchButton.addEventListener("click", () => endSession(true));
+      accountCloseButton.addEventListener("click", () => accountDialog.close());
+      authModeButton.addEventListener("click", () => setAuthMode(authPurpose !== "register"));
+      authForm.addEventListener("submit", submitAuth);
+      authLinkButton.addEventListener("click", setLegacyLinkMode);
+      authBackButton.addEventListener("click", () => {
+        if (authPurpose === "register") setAuthMode(true);
+        else if (authPurpose === "link") setLegacyLinkMode();
+        else setAuthMode(false);
+      });
+      rankingOpenButton.addEventListener("click", showRanking);
+      rankingCloseButton.addEventListener("click", () => rankingDialog.close());
+      exportGamesButton.addEventListener("click", async () => {
+        exportGamesButton.disabled = true;
+        try {
+          const response = await fetch("/api/me/export.xlsx", { cache: "no-store" });
+          if (!response.ok) {
+            let message = "No se pudieron exportar tus partidas.";
+            try {
+              const result = await response.json();
+              if (result.error) message = result.error;
+            } catch {
+            }
+            throw new Error(message);
+          }
+          const url = URL.createObjectURL(await response.blob());
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "orbita-mis-partidas.xlsx";
+          document.body.append(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          accountStatus.textContent = `No se pudo exportar: ${error.message}`;
+        } finally {
+          exportGamesButton.disabled = false;
+        }
+      });
+      colorButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          shipStyle.color = button.dataset.color;
+          shipStyle.glow = button.dataset.glow;
+          shipStyle.flame = button.dataset.flame;
+          colorButtons.forEach(choice => choice.setAttribute("aria-pressed", String(choice === button)));
+          draw();
+        });
+      });
+      shipButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          shipStyle.shape = button.dataset.ship;
+          shipButtons.forEach(choice => choice.setAttribute("aria-pressed", String(choice === button)));
+          saveShipShape(shipStyle.shape);
+          draw();
+        });
+      });
+      musicToggle.addEventListener("click", () => { void toggleMusic(); });
+      window.addEventListener("keydown", event => {
+        if (!introScreen.hidden) return;
+        if (accountDialog.open || profileDialog.open || rankingDialog.open) return;
+        if (["ArrowLeft", "ArrowRight", " "].includes(event.key)) event.preventDefault();
+        keys.add(event.key);
+        if (event.key === " " && !running) requestStart();
+      });
+      window.addEventListener("mousedown", () => { void primeAudio(); }, { once: true });
+      window.addEventListener("keydown", () => { void primeAudio(); }, { once: true });
+      window.addEventListener("keyup", event => keys.delete(event.key));
+      canvas.addEventListener("pointerdown", event => {
+        if (event.pointerType !== "mouse") return;
+        mouseActive = true;
+        canvas.setPointerCapture(event.pointerId);
+        moveToMouse(event);
+      });
+      canvas.addEventListener("pointermove", event => {
+        if (event.pointerType === "mouse" && mouseActive) moveToMouse(event);
+      });
+      canvas.addEventListener("pointerup", () => { mouseActive = false; });
+      canvas.addEventListener("pointercancel", () => { mouseActive = false; });
+      window.addEventListener("resize", resize);
+      window.addEventListener("offline", () => {
+        serverOnline = false;
+        connectionChecked = true;
+        if (running) offlineMode = true;
+        updateAccount();
+      });
+      window.addEventListener("online", () => {
+        void initializeConnection();
+      });
+
+      bestEl.textContent = String(best).padStart(4, "0");
+      shipButtons.forEach(button => {
+        button.setAttribute("aria-pressed", String(button.dataset.ship === shipStyle.shape));
+      });
+      updateMusicButton();
+      resize();
+      updateAccount();
+      window.setTimeout(() => {
+        introMinimumElapsed = true;
+        dismissIntroWhenReady();
+      }, 5000);
+      void initializeConnection().finally(() => {
+        introStatus.textContent = serverOnline ? "Sistemas listos" : "Modo offline listo";
+        introProgress.classList.add("is-loaded");
+        introReady = true;
+        dismissIntroWhenReady();
+      });
+      void removeLegacyAppInstall();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+orbita.db
+orbita.db-shm
+orbita.db-wal
+__pycache__/
+steam/content/
+steam/output/
+steam/app_build.vdf
+steam/depot_build.vdf
