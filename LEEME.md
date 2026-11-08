@@ -31,6 +31,8 @@ En los controles puedes escoger entre tres modelos de nave y cuatro colores. La 
 
 Las cuentas nuevas se verifican con un código de 8 dígitos, válido durante 10 minutos y para un solo uso. Si ya tenías una cuenta, usa **Vincular cuenta anterior**: confirma tu usuario y contraseña anteriores y verifica el nuevo correo. La migración conserva el nombre del ranking y las partidas guardadas. Los datos se almacenan en `orbita.db`; el acceso nuevo no solicita ni guarda una contraseña elegida por el usuario.
 
+El proyecto no incluye un proveedor de correo ni envía códigos sin una configuración SMTP válida. Si falta esa configuración o el proveedor rechaza el envío, el juego muestra un error y no acepta el código. En el equipo local, configura las variables SMTP antes de iniciar el servidor; en un alojamiento, guárdalas como secretos/variables privadas del servicio y permite la salida al puerto SMTP elegido. No pongas credenciales en el código ni las envíes por el chat.
+
 Configura un servicio SMTP antes de iniciar el servidor. No pongas estas credenciales en el código ni las compartas:
 
 - `ORBITA_SMTP_HOST`: servidor SMTP del proveedor.

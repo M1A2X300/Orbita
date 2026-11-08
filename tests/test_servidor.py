@@ -384,6 +384,29 @@ class GameServerTests(unittest.TestCase):
         )
         self.assertEqual(status, 400)
 
+    def test_registration_rejects_existing_username_or_email_without_claiming_code_was_sent(self):
+        self.create_account()
+        for username, email in (
+            ("pilot", "new@example.com"),
+            ("newpilot", "pilot@example.com"),
+        ):
+            with self.subTest(username=username, email=email):
+                status, _, send_code = self.request_code(
+                    "register", email, username=username
+                )
+                self.assertEqual(status, 409)
+                send_code.assert_not_called()
+
+    def test_link_rejects_invalid_legacy_credentials_without_claiming_code_was_sent(self):
+        status, _, send_code = self.request_code(
+            "link",
+            "legacy@example.com",
+            username="missing",
+            password="incorrect-password",
+        )
+        self.assertEqual(status, 400)
+        send_code.assert_not_called()
+
     def test_email_code_is_limited_to_five_attempts(self):
         status, response, send_code = self.request_code(
             "register", "pilot@example.com", username="pilot"

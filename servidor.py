@@ -810,7 +810,11 @@ class GameHandler(BaseHTTPRequestHandler):
                 email_exists = connection.execute(
                     "SELECT 1 FROM users WHERE email = ? COLLATE NOCASE", (email,)
                 ).fetchone()
-            eligible = username_exists is None and email_exists is None
+            if username_exists is not None:
+                raise RequestError(409, "Ese nombre de usuario ya está registrado.")
+            if email_exists is not None:
+                raise RequestError(409, "Ese correo ya está vinculado a una cuenta.")
+            eligible = True
         elif purpose == "login":
             with database() as connection:
                 user = connection.execute(
@@ -822,11 +826,17 @@ class GameHandler(BaseHTTPRequestHandler):
             username = payload.get("username")
             password = payload.get("password")
             user = self.legacy_credentials(username, password)
+            if user is None:
+                raise RequestError(400, "El usuario o la contraseña de la cuenta anterior no son válidos.")
+            if user["email"] is not None:
+                raise RequestError(409, "Esta cuenta ya tiene un correo vinculado.")
             with database() as connection:
                 email_exists = connection.execute(
                     "SELECT 1 FROM users WHERE email = ? COLLATE NOCASE", (email,)
                 ).fetchone()
-            eligible = user is not None and user["email"] is None and email_exists is None
+            if email_exists is not None:
+                raise RequestError(409, "Ese correo ya está vinculado a una cuenta.")
+            eligible = True
 
         challenge_id = secrets.token_urlsafe(24)
         if eligible:
@@ -879,6 +889,10 @@ class GameHandler(BaseHTTPRequestHandler):
                         "No se pudo enviar el código. Revisa la configuración del correo del servidor.",
                     ) from error
             except sqlite3.IntegrityError:
+                if purpose == "register":
+                    raise RequestError(
+                        409, "El nombre de usuario o el correo ya está registrado."
+                    )
                 eligible = False
 
         self.send_json(
