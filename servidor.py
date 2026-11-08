@@ -217,12 +217,16 @@ def send_email_code(recipient, code):
     host = os.environ.get("ORBITA_SMTP_HOST", "").strip()
     username = os.environ.get("ORBITA_SMTP_USERNAME", "")
     password = os.environ.get("ORBITA_SMTP_PASSWORD", "")
-    sender = os.environ.get("ORBITA_SMTP_FROM", username).strip()
+    sender = os.environ.get("ORBITA_SMTP_FROM", "").strip()
     security = os.environ.get("ORBITA_SMTP_SECURITY", "starttls").strip().lower()
     if not host or not sender or bool(username) != bool(password):
         raise RuntimeError("Configura ORBITA_SMTP_HOST, ORBITA_SMTP_FROM y las credenciales SMTP.")
     if any(character in host + sender + username for character in "\r\n"):
         raise RuntimeError("La configuración SMTP contiene un valor no válido.")
+    if not EMAIL_PATTERN.fullmatch(sender):
+        raise RuntimeError(
+            "ORBITA_SMTP_FROM debe ser una dirección de correo autorizada, no el host SMTP."
+        )
     if security not in ("starttls", "ssl"):
         raise RuntimeError("ORBITA_SMTP_SECURITY debe ser starttls o ssl.")
     default_port = "465" if security == "ssl" else "587"

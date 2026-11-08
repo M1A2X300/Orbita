@@ -42,6 +42,8 @@ Configura un servicio SMTP antes de iniciar el servidor. No pongas estas credenc
 - `ORBITA_SMTP_SECURITY`: `starttls` (predeterminado) o `ssl`.
 - `ORBITA_EMAIL_CODE_PEPPER`: secreto persistente de al menos 32 caracteres. En una instalación pública HTTPS es obligatorio; consérvalo fuera del código y no lo cambies al reiniciar, pues los códigos pendientes dejarían de validarse. En uso local, si falta, se genera uno nuevo al iniciar y los códigos pendientes dejan de funcionar al reiniciar.
 
+Para MailerSend, configura `ORBITA_SMTP_HOST=smtp.mailersend.net`, `ORBITA_SMTP_PORT=587` y `ORBITA_SMTP_SECURITY=starttls`. `ORBITA_SMTP_USERNAME` y `ORBITA_SMTP_PASSWORD` deben ser las credenciales SMTP generadas en MailerSend, no las de acceso al panel. `ORBITA_SMTP_FROM` debe ser una dirección remitente de un dominio verificado en MailerSend (por ejemplo, `no-reply@tudominio.com`); no pongas allí `smtp.mailersend.net`.
+
 El botón **Exportar mis partidas** descarga un `.xlsx` con las partidas de la cuenta que tiene la sesión activa, ordenadas por puntuación descendente. No incluye correos, contraseñas, códigos ni partidas de otras cuentas. Protege `orbita.db` y las copias de seguridad: contienen correos vinculados, cuentas e historial.
 
 ## Publicarlo en Internet

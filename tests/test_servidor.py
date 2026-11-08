@@ -7,7 +7,7 @@ import threading
 import unittest
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from zipfile import ZipFile
 from xml.etree import ElementTree
 
@@ -460,6 +460,47 @@ class GameServerTests(unittest.TestCase):
                 "SELECT COUNT(*) FROM email_code_challenges"
             ).fetchone()[0]
         self.assertEqual(challenge_count, 0)
+
+    def test_mailersend_smtp_uses_starttls_and_configured_sender(self):
+        configuration = {
+            "ORBITA_SMTP_HOST": "smtp.mailersend.net",
+            "ORBITA_SMTP_PORT": "587",
+            "ORBITA_SMTP_SECURITY": "starttls",
+            "ORBITA_SMTP_USERNAME": "mailer-user",
+            "ORBITA_SMTP_PASSWORD": "mailer-password",
+            "ORBITA_SMTP_FROM": "no-reply@example.com",
+        }
+        with patch.dict("os.environ", configuration, clear=True), patch(
+            "servidor.smtplib.SMTP"
+        ) as smtp_factory:
+            smtp = smtp_factory.return_value.__enter__.return_value
+            servidor.send_email_code("pilot@example.com", "12345678")
+
+        smtp_factory.assert_called_once_with(
+            "smtp.mailersend.net", 587, timeout=10
+        )
+        smtp.starttls.assert_called_once()
+        smtp.login.assert_called_once_with("mailer-user", "mailer-password")
+        message = smtp.send_message.call_args.args[0]
+        self.assertEqual(message["From"], "no-reply@example.com")
+        self.assertEqual(message["To"], "pilot@example.com")
+
+    def test_mailersend_host_is_not_accepted_as_sender_address(self):
+        configuration = {
+            "ORBITA_SMTP_HOST": "smtp.mailersend.net",
+            "ORBITA_SMTP_PORT": "587",
+            "ORBITA_SMTP_SECURITY": "starttls",
+            "ORBITA_SMTP_USERNAME": "mailer-user",
+            "ORBITA_SMTP_PASSWORD": "mailer-password",
+            "ORBITA_SMTP_FROM": "smtp.mailersend.net",
+        }
+        with patch.dict("os.environ", configuration, clear=True), patch(
+            "servidor.smtplib.SMTP"
+        ) as smtp_factory:
+            with self.assertRaisesRegex(RuntimeError, "ORBITA_SMTP_FROM"):
+                servidor.send_email_code("pilot@example.com", "12345678")
+
+        smtp_factory.assert_not_called()
 
     def test_legacy_account_can_link_verified_email_and_keeps_history(self):
         salt = b"legacy-user-salt!"
