@@ -208,6 +208,15 @@ def token_digest(token):
     return hashlib.sha256(token.encode("ascii")).digest()
 
 
+def reject_duplicate_json_keys(pairs):
+    payload = {}
+    for key, value in pairs:
+        if key in payload:
+            raise ValueError("El JSON contiene claves duplicadas.")
+        payload[key] = value
+    return payload
+
+
 def email_code_digest(challenge_id, code):
     message = f"{challenge_id}:{code}".encode("ascii")
     return hmac.new(EMAIL_CODE_PEPPER, message, hashlib.sha256).digest()
@@ -568,8 +577,10 @@ class GameHandler(BaseHTTPRequestHandler):
         if length < 1 or length > MAX_BODY_BYTES:
             raise RequestError(400, "El contenido de la solicitud no es válido.")
         try:
-            payload = json.loads(self.rfile.read(length))
-        except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as error:
+            payload = json.loads(
+                self.rfile.read(length), object_pairs_hook=reject_duplicate_json_keys
+            )
+        except (ValueError, UnicodeDecodeError, RecursionError) as error:
             raise RequestError(400, "El contenido de la solicitud no es válido.") from error
         if not isinstance(payload, dict):
             raise RequestError(400, "El contenido de la solicitud no es válido.")

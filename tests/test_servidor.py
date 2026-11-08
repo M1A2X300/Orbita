@@ -219,6 +219,32 @@ class GameServerTests(unittest.TestCase):
         connection.close()
         self.assertEqual(response.status, 400)
 
+    def test_rejects_duplicate_json_keys(self):
+        body = (
+            b'{"purpose":"register","purpose":"login",'
+            b'"username":"pilot","email":"pilot@example.com"}'
+        )
+        connection = http.client.HTTPConnection(self.host, self.port, timeout=5)
+        connection.request(
+            "POST",
+            "/api/auth/code",
+            body=body,
+            headers={
+                "Content-Type": "application/json",
+                "Origin": self.origin,
+            },
+        )
+        response = connection.getresponse()
+        response.read()
+        connection.close()
+
+        self.assertEqual(response.status, 400)
+        with servidor.database() as database:
+            challenge_count = database.execute(
+                "SELECT COUNT(*) FROM email_code_challenges"
+            ).fetchone()[0]
+        self.assertEqual(challenge_count, 0)
+
     def test_rate_limits_game_run_creation(self):
         session_cookie = self.create_account()
         headers = {"Cookie": session_cookie}
