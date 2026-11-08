@@ -890,7 +890,9 @@ class GameHandler(BaseHTTPRequestHandler):
                     self.log_error("Could not send sign-in code: %s", error)
                     raise RequestError(
                         503,
-                        "No se pudo enviar el código. Revisa la configuración del correo del servidor.",
+                        "No se pudo enviar el código. Revisa ORBITA_SMTP_HOST, "
+                        "ORBITA_SMTP_FROM (remitente de un dominio verificado) y las "
+                        "credenciales SMTP en Railway.",
                     ) from error
             except sqlite3.IntegrityError:
                 if purpose == "register":

@@ -449,12 +449,13 @@ class GameServerTests(unittest.TestCase):
 
     def test_email_delivery_failure_does_not_leave_usable_code(self):
         with patch("servidor.send_email_code", side_effect=RuntimeError("SMTP unavailable")):
-            status, _, _ = self.request(
+            status, _, body = self.request(
                 "/api/auth/code",
                 "POST",
                 {"purpose": "register", "email": "pilot@example.com", "username": "pilot"},
             )
         self.assertEqual(status, 503)
+        self.assertIn("ORBITA_SMTP_FROM", body.decode("utf-8"))
         with servidor.database() as connection:
             challenge_count = connection.execute(
                 "SELECT COUNT(*) FROM email_code_challenges"
