@@ -48,6 +48,18 @@ El botón **Exportar mis partidas** descarga un `.xlsx` con las partidas de la c
 
 El código queda preparado, pero todavía no está publicado: esta carpeta no tiene un proveedor de alojamiento configurado. Para hacerlo accesible a otras personas, despliega `servidor.py`, `index.html` y la carpeta `icons` en un servicio que permita ejecutar Python. Configura `PORT` con el puerto asignado por el proveedor, `ORBITA_HOST=0.0.0.0` y `ORBITA_DATABASE` con la ruta de `orbita.db` dentro del almacenamiento persistente. Usa HTTPS en el dominio público y no compartas ni subas la base de datos de esta computadora.
 
+### Railway
+
+El archivo `railway.json` configura la compilación Python, el comando de inicio y la comprobación de salud. Para desplegarlo, conecta este repositorio de GitHub a un servicio de Railway y usa el proyecto Railway correspondiente. Añade un volumen persistente montado en `/data` y configura estas variables en **Variables** del servicio:
+
+- `ORBITA_HOST`: `0.0.0.0`
+- `ORBITA_DATABASE`: `/data/orbita.db`
+- `ORBITA_PUBLIC_SCHEME`: `https`
+- `ORBITA_EMAIL_CODE_PEPPER`: secreto persistente de al menos 32 caracteres
+- `ORBITA_SMTP_HOST`, `ORBITA_SMTP_PORT`, `ORBITA_SMTP_USERNAME`, `ORBITA_SMTP_PASSWORD`, `ORBITA_SMTP_FROM` y `ORBITA_SMTP_SECURITY`: datos privados del proveedor de correo; usa `starttls` o `ssl` según el puerto y proveedor.
+
+Railway asigna `PORT` automáticamente. Genera un dominio HTTPS para el servicio desde **Networking**. No guardes credenciales SMTP ni el secreto pepper en GitHub. Sin un volumen persistente se pueden perder las cuentas y partidas al reemplazar la instancia; sin SMTP no se pueden verificar cuentas ni iniciar sesión por correo.
+
 Las cuentas anteriores conservan sus contraseñas con derivación PBKDF2; los códigos se guardan como hashes HMAC y vencen tras 10 minutos o cinco intentos fallidos. Las sesiones se almacenan como hashes. Cada partida online recibe un identificador de un solo uso y el servidor verifica que la puntuación no supere lo posible según el tiempo transcurrido desde su inicio. Aun así, la partida y su duración se calculan en el navegador: el servidor no puede demostrar que el jugador esquivó los meteoritos ni que la partida terminó por una colisión. No uses el ranking para premios ni como sistema antitrampas.
 
 El servidor limita por IP y por correo los intentos de acceso, además de las consultas y escrituras; rechaza cargas JSON grandes o ambiguas, valida el origen y el tipo de contenido de las solicitudes que modifican datos, y envía una política CSP con nonces para los scripts y estilos del juego. También limita el aislamiento entre orígenes y, bajo HTTPS, activa HSTS. La sesión se entrega en una cookie `HttpOnly`, `SameSite=Strict` y, bajo HTTPS, `Secure` con prefijo `__Host-`; JavaScript no puede leer el token.
