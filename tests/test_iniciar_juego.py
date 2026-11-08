@@ -14,7 +14,10 @@ class GameLauncherTests(unittest.TestCase):
 
         self.assertTrue(control_servidor.request_shutdown())
         request = urlopen.call_args.args[0]
-        self.assertEqual(request.get_header("Origin"), "http://127.0.0.1:8000")
+        self.assertEqual(
+            request.get_header("Origin"),
+            f"http://127.0.0.1:{control_servidor.PORT}",
+        )
 
     def test_setup_admin_stores_only_a_password_hash(self):
         password = "orbita-admin-password"

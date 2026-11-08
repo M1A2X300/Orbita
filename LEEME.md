@@ -50,7 +50,7 @@ El código queda preparado, pero todavía no está publicado: esta carpeta no ti
 
 ### Railway
 
-El archivo `railway.json` configura la compilación Python, el comando de inicio y la comprobación de salud. Para desplegarlo, conecta este repositorio de GitHub a un servicio de Railway y usa el proyecto Railway correspondiente. Añade un volumen persistente montado en `/data` y configura estas variables en **Variables** del servicio:
+Los archivos `.python-version` y `requirements.txt` hacen que Railpack detecte la aplicación Python; `railway.json` define el comando de inicio y la comprobación de salud y deja que Railway seleccione automáticamente su builder actual. Para desplegarlo, conecta este repositorio de GitHub a un servicio de Railway y usa el proyecto Railway correspondiente. Añade un volumen persistente montado en `/data` y configura estas variables en **Variables** del servicio:
 
 - `ORBITA_HOST`: `0.0.0.0`
 - `ORBITA_DATABASE`: `/data/orbita.db`
